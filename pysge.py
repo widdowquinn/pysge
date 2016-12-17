@@ -270,9 +270,8 @@ def build_job_scripts( directory, jobs ):
   # scriptPath to the Job object
   for job in jobs:
     scriptPath = os.path.join( directory, "jobs", job.name )
-    scriptFile = file( scriptPath, "w" )
-    scriptFile.write( "#!/bin/sh\n#$ -S /bin/bash\n%s\n" % job.script)
-    scriptFile.close()
+    with open(scriptPath, 'w') as scriptFile:
+      scriptFile.write( "#!/bin/sh\n#$ -S /bin/bash\n%s\n" % job.script)
     job.scriptPath = scriptPath
 
 def extract_submittable_jobs( waiting ):
@@ -327,8 +326,8 @@ def submit_safe_jobs(directory, jobs):
     qsubcmd = ("/usr/nfs/sge_root/bin/lx24-x86/qsub %s %s" % (args,
                                                               job.scriptPath)) 
     #print qsubcmd                      # Show the command to the user
-    os.system(qsubcmd)               # Run the command
-    job.submitted = True               # Set the job's submitted flag to True
+    os.system(qsubcmd)                  # Run the command
+    job.submitted = True                # Set the job's submitted flag to True
 
 def submit_jobs(directory, jobs):
   """ Submit each of the passed job to the SGE server, using the passed
