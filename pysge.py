@@ -291,7 +291,7 @@ def extract_submittable_jobs( waiting ):
       submittable.append( job )
   return submittable
 
-def submit_safe_jobs(directory, jobs):
+def submit_safe_jobs(directory, jobs, qsubargs):
   """ Submit the passed list of jobs to the SGE server, using the passed
       directory as the root for output.
 
@@ -308,6 +308,8 @@ def submit_safe_jobs(directory, jobs):
     args = " -N %s " % (job.name)
     args += " -cwd "
     args += " -o %s -e %s " % (job.out, job.err)
+    if qsubargs is not None:
+      args += " {0} ".format(qsubargs)
     # If a queue is specified, add this to the SGE command line
     if job.queue != None and job.queue in local_queues:
       args += local_queues[job.queue]
@@ -323,13 +325,12 @@ def submit_safe_jobs(directory, jobs):
         args += dep.name + ","
       args = args[:-1]
     # Build the qsub SGE commandline
-    qsubcmd = ("/usr/nfs/sge_root/bin/lx24-x86/qsub %s %s" % (args,
-                                                              job.scriptPath)) 
-    #print qsubcmd                      # Show the command to the user
+    qsubcmd = ("qsub %s %s" % (args, job.scriptPath)) 
+    #print(qsubcmd)                      # Show the command to the user
     os.system(qsubcmd)                  # Run the command
     job.submitted = True                # Set the job's submitted flag to True
 
-def submit_jobs(directory, jobs):
+def submit_jobs(directory, jobs, qsubargs):
   """ Submit each of the passed job to the SGE server, using the passed
       directory as root for output.
 
@@ -343,12 +344,13 @@ def submit_jobs(directory, jobs):
     # extract submittable jobs
     submittable = extract_submittable_jobs(waiting)
     # run those jobs
-    submit_safe_jobs(directory, submittable)
+    submit_safe_jobs(directory, submittable, qsubargs)
     # remove those from the waiting list
-    map(waiting.remove, submittable)
+    for job in submittable:
+      waiting.remove(job)
     
 		
-def build_and_submit_jobs(directory, jobs):
+def build_and_submit_jobs(directory, jobs, qsubargs=None):
   """ Submits the passes list of Job objects to SGE, placing the output in the
       passed root directory
 
@@ -356,6 +358,8 @@ def build_and_submit_jobs(directory, jobs):
 
       o jobs                List of Job objects, describing each job to
                             be submitted
+
+     o qsubargs             Additional arguments for qsub
   """
   # If the passed set of jobs is not a list, turn it into one.  This makes the
   # use of a single JobGroup a little more intutitive
@@ -365,4 +369,4 @@ def build_and_submit_jobs(directory, jobs):
   # Build and submit the passed jobs
   build_directories(directory)       # build all necessary directories
   build_job_scripts(directory, jobs) # build job scripts
-  submit_jobs(directory, jobs)       # submit the jobs to SGE
+  submit_jobs(directory, jobs, qsubargs)       # submit the jobs to SGE
